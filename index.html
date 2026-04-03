@@ -709,10 +709,24 @@ function renderSquares(q) {
 /* ══ 선택지 렌더링 ══ */
 function renderChoices(q) {
   const current = q.colors[currentAnswerIdx];
-  const group = COLOR_GROUPS[current.groupId];
   const grid = document.getElementById('choice-grid');
   grid.innerHTML = '';
-  group.colors.forEach(ch => {
+
+  let choices;
+  if (q.n === 1) {
+    // 1개 모드: 같은 그룹의 3가지 색
+    choices = COLOR_GROUPS[current.groupId].colors;
+    grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+  } else {
+    // 멀티 모드: 정답 포함 선택된 그룹 전체에서 랜덤 4개
+    const allColors = getAvailableColors();
+    const pool = allColors.filter(c => c.name !== current.name);
+    const distractors = shuffle(pool).slice(0, 3);
+    choices = shuffle([current, ...distractors]);
+    grid.style.gridTemplateColumns = choices.length >= 4 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)';
+  }
+
+  choices.forEach(ch => {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
     btn.innerHTML = `<span class="choice-label">${ch.name}</span>`;
@@ -770,9 +784,7 @@ function pickAnswer(chosen, q) {
       fb.className = 'feedback';
       document.getElementById('sq-' + currentAnswerIdx).classList.add('sq-active');
       renderChoices(q);
-      if (impulsePrevention) {
-        applyImpulse(document.getElementById('impulse-area'));
-      }
+      // 멀티 모드에서는 사각형 간 충동방지 없이 즉시 선택 가능
     } else {
       // All answered
       currentQ++;
