@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>색깔 익히기 게임</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 520px;
+      width: 100%;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Setup Screen ── */
+    .app-title {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 4px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .app-subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+    }
+
+    /* Group list */
+    .group-list { display: flex; flex-direction: column; gap: 8px; }
+    .group-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.18s;
+      user-select: none;
+    }
+    .group-item:hover { border-color: #b794f4; background: #faf5ff; }
+    .group-item.selected { border-color: #667eea; background: #ebf4ff; }
+    .group-dots { display: flex; gap: 5px; }
+    .dot {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0,0,0,0.12);
+      flex-shrink: 0;
+    }
+    .group-name { font-weight: 600; color: #2d3748; font-size: 0.95rem; }
+    .check-icon {
+      margin-left: auto;
+      color: #667eea;
+      font-size: 1.1rem;
+      opacity: 0;
+      transition: opacity 0.18s;
+    }
+    .group-item.selected .check-icon { opacity: 1; }
+
+    /* Mode buttons */
+    .mode-row { display: flex; gap: 10px; }
+    .mode-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 8px;
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.18s;
+      user-select: none;
+    }
+    .mode-btn:hover { border-color: #b794f4; background: #faf5ff; }
+    .mode-btn.selected { border-color: #667eea; background: #ebf4ff; }
+    .mode-squares { display: flex; gap: 4px; }
+    .msq {
+      width: 18px; height: 18px;
+      border-radius: 4px;
+      background: #667eea;
+    }
+    .mode-label { font-weight: 700; font-size: 0.9rem; color: #4a5568; }
+    .mode-desc { font-size: 0.75rem; color: #a0aec0; text-align: center; line-height: 1.3; }
+
+    /* Start button */
+    .start-btn {
+      width: 100%;
+      padding: 18px;
+      background: white;
+      color: #667eea;
+      border: none;
+      border-radius: 16px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      letter-spacing: 0.02em;
+    }
+    .start-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.2); }
+    .start-btn:active { transform: translateY(0); }
+
+    /* ── Game Screen ── */
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .home-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+    .home-btn:hover { background: rgba(255,255,255,0.3); }
+    .score-box {
+      background: white;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-weight: 700;
+      color: #4a5568;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .score-box span { color: #667eea; font-size: 1.05rem; }
+
+    .question-label {
+      text-align: center;
+      color: #718096;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+
+    /* Color squares */
+    .colors-display {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .sq-wrapper { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .color-sq {
+      border-radius: 14px;
+      border: 3px solid transparent;
+      transition: all 0.25s;
+      flex-shrink: 0;
+    }
+    .color-sq.active {
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102,126,234,0.25), 0 6px 20px rgba(0,0,0,0.15);
+      transform: scale(1.05);
+    }
+    .color-sq.correct { border-color: #48bb78; box-shadow: 0 0 0 4px rgba(72,187,120,0.2); }
+    .color-sq.wrong { border-color: #fc8181; box-shadow: 0 0 0 4px rgba(252,129,129,0.2); }
+    .sq-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: white;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      min-height: 18px;
+      text-align: center;
+    }
+    .sq-label.correct-lbl { color: #48bb78; }
+    .sq-label.wrong-lbl { color: #fc8181; }
+
+    /* Feedback */
+    .feedback {
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .feedback.ok { color: #48bb78; }
+    .feedback.fail { color: #fc8181; }
+
+    /* Choices */
+    .choices-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .choice-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 8px;
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .choice-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+      border-color: #b794f4;
+    }
+    .choice-btn:disabled { cursor: default; }
+    .choice-color {
+      width: 52px; height: 52px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(0,0,0,0.1);
+    }
+    .choice-name { font-size: 0.85rem; font-weight: 600; color: #2d3748; }
+    .choice-btn.correct { border-color: #48bb78; background: #f0fff4; }
+    .choice-btn.wrong { border-color: #fc8181; background: #fff5f5; }
+
+    /* Pulse animation for active square */
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(102,126,234,0.25), 0 6px 20px rgba(0,0,0,0.15); }
+      50% { box-shadow: 0 0 0 6px rgba(102,126,234,0.35), 0 6px 20px rgba(0,0,0,0.15); }
+    }
+    .color-sq.active { animation: pulse-border 1.5s ease-in-out infinite; }
+    .color-sq.correct, .color-sq.wrong { animation: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ── Setup Screen ── -->
+  <div class="screen active" id="setup-screen">
+    <h1 class="app-title">🎨 색깔 익히기</h1>
+    <p class="app-subtitle">색깔을 보고 이름을 맞춰보세요!</p>
+
+    <div class="card">
+      <div class="card-title">색깔 그룹 선택</div>
+      <div class="group-list" id="group-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">모드 선택</div>
+      <div class="mode-row" id="mode-row"></div>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">시작하기 →</button>
+  </div>
+
+  <!-- ── Game Screen ── -->
+  <div class="screen" id="game-screen">
+    <div class="game-header">
+      <button class="home-btn" onclick="goHome()">← 처음으로</button>
+      <div class="score-box">정답 <span id="score-val">0</span> / <span id="total-val">0</span></div>
+    </div>
+
+    <div class="card">
+      <div class="question-label" id="q-label">이 색깔은 무엇인가요?</div>
+      <div class="colors-display" id="colors-display"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="choices-grid" id="choices-grid"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Data ──────────────────────────────────────────────
+  const GROUPS = [
+    {
+      id: 0,
+      label: '빨간색 · 파란색 · 노란색',
+      colors: [
+        { name: '빨간색', hex: '#E53E3E' },
+        { name: '파란색', hex: '#3182CE' },
+        { name: '노란색', hex: '#ECC94B' },
+      ]
+    },
+    {
+      id: 1,
+      label: '검정색 · 흰색 · 회색',
+      colors: [
+        { name: '검정색', hex: '#1A202C' },
+        { name: '흰색',   hex: '#F0F0F0' },
+        { name: '회색',   hex: '#A0AEC0' },
+      ]
+    },
+    {
+      id: 2,
+      label: '주황색 · 초록색 · 보라색',
+      colors: [
+        { name: '주황색', hex: '#ED8936' },
+        { name: '초록색', hex: '#38A169' },
+        { name: '보라색', hex: '#805AD5' },
+      ]
+    },
+    {
+      id: 3,
+      label: '연두색 · 하늘색 · 분홍색',
+      colors: [
+        { name: '연두색', hex: '#68D391' },
+        { name: '하늘색', hex: '#63B3ED' },
+        { name: '분홍색', hex: '#F687B3' },
+      ]
+    },
+    {
+      id: 4,
+      label: '남색 · 자주색 · 갈색',
+      colors: [
+        { name: '남색',   hex: '#2B4C7E' },
+        { name: '자주색', hex: '#97266D' },
+        { name: '갈색',   hex: '#92400E' },
+      ]
+    },
+  ];
+
+  const MODES = [
+    { n: 1, label: '1개', desc: '한 번에\n1색' },
+    { n: 2, label: '2개', desc: '순서대로\n2색' },
+    { n: 3, label: '3개', desc: '순서대로\n3색' },
+  ];
+
+  // ── State ─────────────────────────────────────────────
+  let selGroups = new Set([0]);
+  let selMode   = 1;
+  let score = 0, total = 0;
+  let question = [];        // array of { name, hex, groupId }
+  let answerIdx = 0;        // current square to answer
+  let results = [];         // null | true | false per square
+  let locked = false;
+
+  // ── Init ──────────────────────────────────────────────
+  function init() {
+    buildGroupList();
+    buildModeRow();
+  }
+
+  function buildGroupList() {
+    const el = document.getElementById('group-list');
+    el.innerHTML = '';
+    GROUPS.forEach((g, i) => {
+      const div = document.createElement('div');
+      div.className = 'group-item' + (selGroups.has(i) ? ' selected' : '');
+      div.onclick = () => toggleGroup(i, div);
+      div.innerHTML = `
+        <div class="group-dots">${g.colors.map(c =>
+          `<div class="dot" style="background:${c.hex}"></div>`).join('')}</div>
+        <span class="group-name">${g.label}</span>
+        <span class="check-icon">✓</span>
+      `;
+      el.appendChild(div);
+    });
+  }
+
+  function buildModeRow() {
+    const el = document.getElementById('mode-row');
+    el.innerHTML = '';
+    MODES.forEach(m => {
+      const btn = document.createElement('div');
+      btn.className = 'mode-btn' + (m.n === selMode ? ' selected' : '');
+      btn.onclick = () => { selMode = m.n; buildModeRow(); };
+      btn.innerHTML = `
+        <div class="mode-squares">${Array(m.n).fill('<div class="msq"></div>').join('')}</div>
+        <div class="mode-label">${m.label}</div>
+        <div class="mode-desc">${m.desc.replace('\n','<br>')}</div>
+      `;
+      el.appendChild(btn);
+    });
+  }
+
+  function toggleGroup(id, el) {
+    if (selGroups.has(id)) {
+      if (selGroups.size === 1) return; // at least 1 required
+      selGroups.delete(id);
+      el.classList.remove('selected');
+    } else {
+      selGroups.add(id);
+      el.classList.add('selected');
+    }
+  }
+
+  // ── Game flow ─────────────────────────────────────────
+  function startGame() {
+    score = 0; total = 0;
+    showScreen('game-screen');
+    nextQuestion();
+  }
+
+  function goHome() {
+    showScreen('setup-screen');
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function allColors() {
+    const arr = [];
+    selGroups.forEach(id => {
+      GROUPS[id].colors.forEach(c => arr.push({ ...c, groupId: id }));
+    });
+    return arr;
+  }
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function nextQuestion() {
+    const pool = allColors();
+    question = Array.from({ length: selMode }, () => pick(pool));
+    answerIdx = 0;
+    results   = Array(selMode).fill(null);
+    locked    = false;
+    renderGame();
+  }
+
+  // ── Render ────────────────────────────────────────────
+  function renderGame() {
+    document.getElementById('score-val').textContent = score;
+    document.getElementById('total-val').textContent = total;
+
+    // label
+    const lbl = document.getElementById('q-label');
+    if (selMode === 1) {
+      lbl.textContent = '이 색깔은 무엇인가요?';
+    } else {
+      lbl.textContent = `순서대로 맞춰보세요! (${answerIdx + 1} / ${selMode})`;
+    }
+
+    renderSquares();
+    renderChoices();
+
+    const fb = document.getElementById('feedback');
+    fb.textContent = '';
+    fb.className = 'feedback';
+  }
+
+  function sqSize() {
+    if (selMode === 1) return 140;
+    if (selMode === 2) return 120;
+    return 96;
+  }
+
+  function renderSquares() {
+    const size = sqSize();
+    const el = document.getElementById('colors-display');
+    el.innerHTML = '';
+
+    question.forEach((c, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'sq-wrapper';
+
+      const sq = document.createElement('div');
+      sq.className = 'color-sq';
+      sq.id = `sq-${i}`;
+      sq.style.cssText = `width:${size}px;height:${size}px;background:${c.hex};`;
+      if (i === answerIdx && results[i] === null) sq.classList.add('active');
+      if (results[i] === true)  sq.classList.add('correct');
+      if (results[i] === false) sq.classList.add('wrong');
+
+      const lbl = document.createElement('div');
+      lbl.className = 'sq-label';
+      if (results[i] === true)  { lbl.textContent = '✓ ' + c.name; lbl.classList.add('correct-lbl'); }
+      if (results[i] === false) { lbl.textContent = '✗ ' + c.name; lbl.classList.add('wrong-lbl'); }
+
+      wrap.appendChild(sq);
+      wrap.appendChild(lbl);
+      el.appendChild(wrap);
+    });
+  }
+
+  function renderChoices() {
+    const current = question[answerIdx];
+    const choices = GROUPS[current.groupId].colors;
+
+    const el = document.getElementById('choices-grid');
+    el.innerHTML = '';
+
+    choices.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.innerHTML = `
+        <div class="choice-color" style="background:${ch.hex}"></div>
+        <span class="choice-name">${ch.name}</span>
+      `;
+      btn.onclick = () => handleAnswer(ch.name, btn);
+      el.appendChild(btn);
+    });
+  }
+
+  // ── Answer logic ──────────────────────────────────────
+  function handleAnswer(chosen, btn) {
+    if (locked) return;
+    locked = true;
+
+    const correct = question[answerIdx].name;
+    const isOk    = chosen === correct;
+
+    results[answerIdx] = isOk;
+    total++;
+    if (isOk) score++;
+
+    // style chosen button
+    btn.classList.add(isOk ? 'correct' : 'wrong');
+
+    // if wrong, reveal correct
+    if (!isOk) {
+      document.querySelectorAll('.choice-btn').forEach(b => {
+        if (b.querySelector('.choice-name').textContent === correct) b.classList.add('correct');
+      });
+    }
+
+    // disable all buttons
+    document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+    // feedback
+    const fb = document.getElementById('feedback');
+    fb.textContent = isOk ? '🎉 정답!' : `❌ 틀렸어요! (${correct})`;
+    fb.className   = 'feedback ' + (isOk ? 'ok' : 'fail');
+
+    // update square
+    updateSquare(answerIdx, isOk, correct);
+
+    document.getElementById('score-val').textContent = score;
+    document.getElementById('total-val').textContent = total;
+
+    setTimeout(() => {
+      answerIdx++;
+      if (answerIdx < selMode) {
+        // move to next square
+        locked = false;
+        const lbl = document.getElementById('q-label');
+        lbl.textContent = `순서대로 맞춰보세요! (${answerIdx + 1} / ${selMode})`;
+        fb.textContent = '';
+        fb.className = 'feedback';
+        // activate next square
+        const nextSq = document.getElementById(`sq-${answerIdx}`);
+        if (nextSq) nextSq.classList.add('active');
+        renderChoices();
+      } else {
+        setTimeout(() => nextQuestion(), 400);
+      }
+    }, 1100);
+  }
+
+  function updateSquare(idx, isOk, correctName) {
+    const sq = document.getElementById(`sq-${idx}`);
+    if (!sq) return;
+    sq.classList.remove('active');
+    sq.classList.add(isOk ? 'correct' : 'wrong');
+    const lbl = sq.nextElementSibling;
+    lbl.textContent = (isOk ? '✓ ' : '✗ ') + correctName;
+    lbl.className = 'sq-label ' + (isOk ? 'correct-lbl' : 'wrong-lbl');
+  }
+
+  // ── Start ─────────────────────────────────────────────
+  init();
+</script>
+</body>
+</html>
