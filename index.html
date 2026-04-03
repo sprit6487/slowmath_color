@@ -750,20 +750,18 @@ function pickAnswer(chosen, q) {
     q.results[currentAnswerIdx] = true;
     currentAnswerIdx++;
     if (currentAnswerIdx < q.colors.length) {
-      // Move to next square after delay
-      setTimeout(() => {
-        busy = false;
-        firstAttemptWrong = false;
-        document.getElementById('question-prompt').textContent =
-          `순서대로 맞춰보세요! (${currentAnswerIdx+1} / ${q.colors.length})`;
-        fb.textContent = '';
-        fb.className = 'feedback';
-        document.getElementById('sq-' + currentAnswerIdx).classList.add('sq-active');
-        renderChoices(q);
-        if (impulsePrevention) {
-          applyImpulse(document.getElementById('impulse-area'));
-        }
-      }, 900);
+      // Immediately move to next square
+      busy = false;
+      firstAttemptWrong = false;
+      document.getElementById('question-prompt').textContent =
+        `순서대로 맞춰보세요! (${currentAnswerIdx+1} / ${q.colors.length})`;
+      fb.textContent = '';
+      fb.className = 'feedback';
+      document.getElementById('sq-' + currentAnswerIdx).classList.add('sq-active');
+      renderChoices(q);
+      if (impulsePrevention) {
+        applyImpulse(document.getElementById('impulse-area'));
+      }
     } else {
       // All answered
       currentQ++;
