@@ -579,7 +579,18 @@ function getAvailableColors() {
 
 function generateQuestion(n) {
   const pool = getAvailableColors();
-  const colors = Array.from({length: n}, () => pick(pool));
+  const shuffled = shuffle(pool);
+  // Pick n unique colors (by name); fall back to allow repeats only if pool is too small
+  const colors = [];
+  const used = new Set();
+  for (const c of shuffled) {
+    if (!used.has(c.name)) { used.add(c.name); colors.push(c); }
+    if (colors.length === n) break;
+  }
+  // If not enough unique colors, fill remainder from full pool excluding already used
+  while (colors.length < n) {
+    colors.push(pick(pool));
+  }
   const prompt = n === 1 ? '이 색깔은 무엇인가요?' : `순서대로 맞춰보세요! (1 / ${n})`;
   return { colors, answerIdx: 0, results: Array(n).fill(null), prompt, n };
 }
