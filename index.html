@@ -59,8 +59,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100dv
 .mode-preview-wrap{width:76px;height:52px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;}
 .group-dot{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(0,0,0,.1);}
 .mode-info{flex:1;text-align:left;}
-.mode-title{font-size:1rem;font-weight:700;color:var(--warm-700);margin-bottom:2px;}
-.mode-desc{font-size:.72rem;color:var(--warm-400);}
+.mode-title{font-size:.82rem;font-weight:700;color:var(--warm-700);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mode-desc{font-size:.68rem;color:var(--warm-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .select-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;color:transparent;font-size:.9rem;}
 .mode-card.selected .select-check{background:var(--blue);border-color:var(--blue);color:#fff;}
 
@@ -419,7 +419,7 @@ function buildGroupCards() {
           `<div class="group-dot" style="background:${c.hex}"></div>`).join('')}</div>
         <div class="mode-info">
           <div class="mode-title">${g.name}</div>
-          <div class="mode-desc">${g.colors.map(c=>c.name).join(', ')}</div>
+          <div class="mode-desc">${g.colors.map(c=>c.name).join(', ')}을 연습해요</div>
         </div>
         <div class="select-check" id="check-${g.id}">${selectedGroups.has(g.id)?'✓':''}</div>
       </div>
