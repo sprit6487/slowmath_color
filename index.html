@@ -580,19 +580,31 @@ function getAvailableColors() {
 function generateQuestion(n) {
   const pool = getAvailableColors();
   const shuffled = shuffle(pool);
-  // Pick n unique colors (by name); fall back to allow repeats only if pool is too small
+  // Pick n unique answer colors
   const colors = [];
   const used = new Set();
   for (const c of shuffled) {
     if (!used.has(c.name)) { used.add(c.name); colors.push(c); }
     if (colors.length === n) break;
   }
-  // If not enough unique colors, fill remainder from full pool excluding already used
-  while (colors.length < n) {
-    colors.push(pick(pool));
+  while (colors.length < n) { colors.push(pick(pool)); }
+
+  // Multi-mode: build fixed 4 choices (all answers + distractors from their groups)
+  let choices = null;
+  if (n > 1) {
+    const answerGroupIds = new Set(colors.map(c => c.groupId));
+    const distPool = [];
+    answerGroupIds.forEach(gid => {
+      COLOR_GROUPS[gid].colors.forEach(c => {
+        if (!used.has(c.name)) distPool.push({...c, groupId: gid});
+      });
+    });
+    const distractors = shuffle(distPool).slice(0, 4 - n);
+    choices = shuffle([...colors, ...distractors]);
   }
+
   const prompt = n === 1 ? '이 색깔은 무엇인가요?' : `순서대로 맞춰보세요! (1 / ${n})`;
-  return { colors, answerIdx: 0, results: Array(n).fill(null), prompt, n };
+  return { colors, choices, answerIdx: 0, results: Array(n).fill(null), prompt, n };
 }
 
 function generateQuestions(n, count=10) {
@@ -708,21 +720,18 @@ function renderSquares(q) {
 
 /* ══ 선택지 렌더링 ══ */
 function renderChoices(q) {
-  const current = q.colors[currentAnswerIdx];
   const grid = document.getElementById('choice-grid');
   grid.innerHTML = '';
 
   let choices;
   if (q.n === 1) {
     // 1개 모드: 같은 그룹의 3가지 색
+    const current = q.colors[currentAnswerIdx];
     choices = COLOR_GROUPS[current.groupId].colors;
     grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
   } else {
-    // 멀티 모드: 정답 포함 선택된 그룹 전체에서 랜덤 4개
-    const allColors = getAvailableColors();
-    const pool = allColors.filter(c => c.name !== current.name);
-    const distractors = shuffle(pool).slice(0, 3);
-    choices = shuffle([current, ...distractors]);
+    // 멀티 모드: 문제 생성 시 확정된 고정 4개 보기 사용
+    choices = q.choices;
     grid.style.gridTemplateColumns = choices.length >= 4 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)';
   }
 
@@ -775,7 +784,7 @@ function pickAnswer(chosen, q) {
     q.results[currentAnswerIdx] = true;
     currentAnswerIdx++;
     if (currentAnswerIdx < q.colors.length) {
-      // Immediately move to next square
+      // 즉시 다음 사각형으로 이동 — 보기는 고정이므로 버튼 상태만 리셋
       busy = false;
       firstAttemptWrong = false;
       document.getElementById('question-prompt').textContent =
@@ -783,8 +792,10 @@ function pickAnswer(chosen, q) {
       fb.textContent = '';
       fb.className = 'feedback';
       document.getElementById('sq-' + currentAnswerIdx).classList.add('sq-active');
-      renderChoices(q);
-      // 멀티 모드에서는 사각형 간 충동방지 없이 즉시 선택 가능
+      document.querySelectorAll('.choice-btn').forEach(b => {
+        b.classList.remove('ch-correct', 'ch-wrong');
+        b.disabled = false;
+      });
     } else {
       // All answered
       currentQ++;
