@@ -71,6 +71,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100dv
 .mode-btns{display:flex;gap:8px;}
 .mode-btn{flex:1;padding:10px 0;border:2px solid var(--border);border-radius:10px;background:#fff;font-family:inherit;font-size:.75rem;font-weight:700;color:var(--warm-600);cursor:pointer;transition:all .12s;text-align:center;}
 .mode-btn:hover,.mode-btn:active{background:#EEF6FD;border-color:var(--blue);color:var(--blue);}
+.mode-btn.selected{background:#EEF6FD;border-color:var(--blue);color:var(--blue);}
+.btn-start{width:100%;padding:14px 0;border-radius:16px;border:none;background:#4A4035;color:#fff;font-size:1.125rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s,transform .1s;box-shadow:0 2px 8px rgba(74,64,53,.15);margin-bottom:16px;}
+.btn-start:active{transform:scale(.98);background:#2E261D;}
 
 /* ── Settings ── */
 .settings-section{width:100%;border-top:1.5px solid var(--border-light);padding-top:16px;margin-top:4px;}
@@ -159,6 +162,24 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100dv
 @keyframes popIn{0%{transform:scale(.8);opacity:.5}45%{transform:scale(1.15)}65%{transform:scale(.92)}80%{transform:scale(1.05)}100%{transform:scale(1)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 @keyframes pulse-count{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.7}}
+
+/* ── Answer type selector ── */
+.answer-type-row{display:flex;gap:8px;margin-bottom:12px;}
+.answer-type-btn{flex:1;padding:12px 6px;border:2px solid var(--border);border-radius:14px;background:#fff;font-family:inherit;font-size:.78rem;font-weight:700;color:var(--warm-600);cursor:pointer;transition:all .12s;text-align:center;line-height:1.5;}
+.answer-type-btn.selected{border-color:var(--blue);background:#EEF6FD;color:var(--blue);}
+.answer-type-icon{font-size:1.3rem;display:block;margin-bottom:2px;}
+
+/* ── Color text cards (색깔로 맞추기 mode) ── */
+.color-text-card{transition:transform .25s,opacity .25s;}
+.color-text-card .color-text-name{font-size:clamp(1.6rem,7vw,2.2rem);font-weight:900;color:var(--warm-700);padding:18px 28px;border:3px solid var(--border);border-radius:16px;background:#FAFAFA;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:transform .25s,opacity .25s,color .2s,border-color .2s;display:inline-block;}
+.color-text-card.sq-active .color-text-name{transform:scale(1.1);box-shadow:0 6px 20px rgba(0,0,0,.16);}
+.color-text-card:not(.sq-active):not(.sq-correct):not(.sq-wrong) .color-text-name{opacity:0.4;}
+.color-text-card.sq-correct .color-text-name{color:#5BC886;border-color:#5BC886;}
+.color-text-card.sq-wrong .color-text-name{color:#F07070;border-color:#F07070;}
+
+/* ── Color swatch choice buttons ── */
+.choice-btn.color-swatch{padding:6px;aspect-ratio:1/1;}
+.choice-swatch{width:100%;height:100%;border-radius:10px;border:2px solid rgba(0,0,0,.08);}
 </style>
 </head>
 <body>
@@ -285,12 +306,26 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100dv
     <!-- 색깔 그룹 카드 -->
     <div class="mode-grid" id="group-cards"></div>
 
-    <!-- 모드 버튼 -->
-    <div style="width:100%;display:flex;gap:8px;margin-bottom:16px;" id="mode-btns-row">
-      <button class="mode-btn" onclick="startGame(1)">1개 맞추기</button>
-      <button class="mode-btn" onclick="startGame(2)">2개 맞추기</button>
-      <button class="mode-btn" onclick="startGame(3)">3개 맞추기</button>
+    <!-- 보기 유형 선택 -->
+    <p class="section-label">보기 유형</p>
+    <div class="answer-type-row" style="width:100%;margin-bottom:16px;">
+      <button class="answer-type-btn selected" onclick="setAnswerType('color')" data-type="color">
+        <span class="answer-type-icon">🎨</span>색깔로 맞추기
+      </button>
+      <button class="answer-type-btn" onclick="setAnswerType('text')" data-type="text">
+        <span class="answer-type-icon">가나다</span>글자로 맞추기
+      </button>
     </div>
+
+    <!-- 모드 버튼 -->
+    <div style="width:100%;display:flex;gap:8px;margin-bottom:12px;" id="mode-btns-row">
+      <button class="mode-btn selected" id="mode-btn-1" onclick="selectMode(1)">1개 맞추기</button>
+      <button class="mode-btn" id="mode-btn-2" onclick="selectMode(2)">2개 맞추기</button>
+      <button class="mode-btn" id="mode-btn-3" onclick="selectMode(3)">3개 맞추기</button>
+    </div>
+
+    <!-- 시작하기 버튼 -->
+    <button class="btn-start" onclick="startGame(selectedMode)">시작하기</button>
 
     <!-- 설정 -->
     <div class="settings-section">
@@ -412,6 +447,15 @@ let firstAttemptWrong = false;
 let lastMode = 1;
 
 let ttsEnabled = true, impulsePrevention = true, impulseMode = 'hide', impulseDelay = 5;
+let answerType = 'color'; // 'text' = 글자로 맞추기, 'color' = 색깔로 맞추기
+let selectedMode = 1;
+
+function selectMode(n) {
+  selectedMode = n;
+  [1,2,3].forEach(i => {
+    document.getElementById('mode-btn-' + i).classList.toggle('selected', i === n);
+  });
+}
 
 /* ══ 그룹 카드 렌더링 ══ */
 function buildGroupCards() {
@@ -449,7 +493,7 @@ function toggleGroup(id) {
 
 /* ══ 설정 ══ */
 function saveSettings() {
-  localStorage.setItem('slowmath_color_settings', JSON.stringify({ttsEnabled,impulsePrevention,impulseMode,impulseDelay}));
+  localStorage.setItem('slowmath_color_settings', JSON.stringify({ttsEnabled,impulsePrevention,impulseMode,impulseDelay,answerType}));
 }
 function loadSettings() {
   try {
@@ -459,6 +503,7 @@ function loadSettings() {
     if (typeof s.impulsePrevention === 'boolean') impulsePrevention = s.impulsePrevention;
     if (s.impulseMode === 'lock' || s.impulseMode === 'hide') impulseMode = s.impulseMode;
     if (typeof s.impulseDelay === 'number' && s.impulseDelay >= 1 && s.impulseDelay <= 10) impulseDelay = s.impulseDelay;
+    if (s.answerType === 'text' || s.answerType === 'color') answerType = s.answerType;
   } catch(e) {}
 }
 function applySettingsUI() {
@@ -468,6 +513,12 @@ function applySettingsUI() {
   document.querySelectorAll('.impulse-mode-btn').forEach(b => b.classList.toggle('selected', b.dataset.mode === impulseMode));
   document.getElementById('impulse-delay-row').style.display = impulseMode === 'lock' ? '' : 'none';
   document.querySelectorAll('.imp-sec').forEach((b,i) => b.classList.toggle('active', i+1 === impulseDelay));
+  document.querySelectorAll('.answer-type-btn').forEach(b => b.classList.toggle('selected', b.dataset.type === answerType));
+}
+function setAnswerType(type) {
+  answerType = type;
+  document.querySelectorAll('.answer-type-btn').forEach(b => b.classList.toggle('selected', b.dataset.type === type));
+  saveSettings();
 }
 function toggleTTS() {
   ttsEnabled = !ttsEnabled;
@@ -617,7 +668,21 @@ function generateQuestion(n) {
 }
 
 function generateQuestions(n, count=10) {
-  return Array.from({length: count}, () => generateQuestion(n));
+  const list = [];
+  let prevColors = new Set();
+  let attempts = 0;
+  while (list.length < count && attempts < count * 10) {
+    attempts++;
+    const q = generateQuestion(n);
+    const qColors = new Set(q.colors.map(c => c.name));
+    // 이전 문제와 겹치는 색이 하나도 없어야 통과
+    const hasOverlap = [...qColors].some(name => prevColors.has(name));
+    if (!hasOverlap || attempts > count * 8) {
+      list.push(q);
+      prevColors = qColors;
+    }
+  }
+  return list;
 }
 
 /* ══ 게임 시작 ══ */
@@ -655,14 +720,24 @@ function loadQuestion() {
   document.getElementById('progress-fill').style.width = (currentQ/questions.length*100) + '%';
   document.getElementById('feedback').textContent = '';
   document.getElementById('feedback').className = 'feedback';
-  document.getElementById('question-prompt').textContent = q.colors.length === 1
-    ? '이 색깔은 무엇인가요?'
-    : `순서대로 맞춰보세요! (1 / ${q.colors.length})`;
+  if (answerType === 'color') {
+    document.getElementById('question-prompt').textContent = q.colors.length === 1
+      ? `${q.colors[0].name}은 어디에 있나요?`
+      : `순서대로 골라보세요! (1 / ${q.colors.length})`;
+  } else {
+    document.getElementById('question-prompt').textContent = q.colors.length === 1
+      ? '이 색깔은 무엇인가요?'
+      : `순서대로 맞춰보세요! (1 / ${q.colors.length})`;
+  }
 
   renderSquares(q);
   renderChoices(q);
 
-  speak(q.colors.length === 1 ? '이 색깔은 무엇인가요?' : '순서대로 맞춰보세요');
+  if (answerType === 'color') {
+    speak(q.colors.length === 1 ? `${q.colors[0].name}은 어디에 있나요?` : '순서대로 골라보세요');
+  } else {
+    speak(q.colors.length === 1 ? '이 색깔은 무엇인가요?' : '순서대로 맞춰보세요');
+  }
 
   const impulseArea = document.getElementById('impulse-area');
   impulseArea.innerHTML = '';
@@ -708,23 +783,43 @@ function applyImpulse(impulseArea) {
 function sqSize(n) { return n === 1 ? 140 : n === 2 ? 115 : 90; }
 
 function renderSquares(q) {
-  const size = sqSize(q.colors.length);
   const row = document.getElementById('color-squares-row');
   row.innerHTML = '';
-  q.colors.forEach((c, i) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'color-sq-wrap';
-    const sq = document.createElement('div');
-    sq.className = 'color-sq' + (i === 0 ? ' sq-active' : '');
-    sq.id = 'sq-' + i;
-    sq.style.cssText = `width:${size}px;height:${size}px;background:${c.hex};`;
-    const lbl = document.createElement('div');
-    lbl.className = 'sq-name';
-    lbl.id = 'sq-name-' + i;
-    wrap.appendChild(sq);
-    wrap.appendChild(lbl);
-    row.appendChild(wrap);
-  });
+
+  if (answerType === 'color') {
+    // 색깔로 맞추기: 색 이름 텍스트 카드 표시
+    q.colors.forEach((c, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'color-sq-wrap color-text-card' + (i === 0 ? ' sq-active' : '');
+      wrap.id = 'sq-' + i;
+      const textEl = document.createElement('div');
+      textEl.className = 'color-text-name';
+      textEl.textContent = c.name;
+      const lbl = document.createElement('div');
+      lbl.className = 'sq-name';
+      lbl.id = 'sq-name-' + i;
+      wrap.appendChild(textEl);
+      wrap.appendChild(lbl);
+      row.appendChild(wrap);
+    });
+  } else {
+    // 글자로 맞추기: 색깔 사각형 표시 (기존)
+    const size = sqSize(q.colors.length);
+    q.colors.forEach((c, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'color-sq-wrap';
+      const sq = document.createElement('div');
+      sq.className = 'color-sq' + (i === 0 ? ' sq-active' : '');
+      sq.id = 'sq-' + i;
+      sq.style.cssText = `width:${size}px;height:${size}px;background:${c.hex};`;
+      const lbl = document.createElement('div');
+      lbl.className = 'sq-name';
+      lbl.id = 'sq-name-' + i;
+      wrap.appendChild(sq);
+      wrap.appendChild(lbl);
+      row.appendChild(wrap);
+    });
+  }
 }
 
 /* ══ 선택지 렌더링 ══ */
@@ -734,20 +829,26 @@ function renderChoices(q) {
 
   let choices;
   if (q.n === 1) {
-    // 1개 모드: 같은 그룹의 3가지 색
     const current = q.colors[currentAnswerIdx];
     choices = COLOR_GROUPS[current.groupId].colors;
     grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
   } else {
-    // 멀티 모드: 문제 생성 시 확정된 고정 4개 보기 사용
     choices = q.choices;
     grid.style.gridTemplateColumns = choices.length >= 4 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)';
   }
 
   choices.forEach(ch => {
     const btn = document.createElement('button');
-    btn.className = 'choice-btn';
-    btn.innerHTML = `<span class="choice-label">${ch.name}</span>`;
+    btn.dataset.colorName = ch.name;
+    if (answerType === 'color') {
+      // 색깔 스와치 버튼
+      btn.className = 'choice-btn color-swatch';
+      btn.innerHTML = `<div class="choice-swatch" style="background:${ch.hex}"></div>`;
+    } else {
+      // 기존 글자 버튼
+      btn.className = 'choice-btn';
+      btn.innerHTML = `<span class="choice-label">${ch.name}</span>`;
+    }
     btn.onclick = () => pickAnswer(ch.name, q);
     grid.appendChild(btn);
   });
@@ -768,7 +869,7 @@ function pickAnswer(chosen, q) {
   // Style choice buttons
   document.querySelectorAll('.choice-btn').forEach(b => {
     b.disabled = true;
-    const lbl = b.querySelector('.choice-label').textContent;
+    const lbl = b.dataset.colorName;
     if (lbl === chosen && !isOk) b.classList.add('ch-wrong');
     if (lbl === correct) b.classList.add('ch-correct');
   });
@@ -778,8 +879,8 @@ function pickAnswer(chosen, q) {
   const sqName = document.getElementById('sq-name-' + currentAnswerIdx);
   sq.classList.remove('sq-active');
   sq.classList.add(isOk ? 'sq-correct' : 'sq-wrong');
-  sqName.textContent = (isOk ? '✓ ' : '✗ ') + correct;
-  sqName.className = 'sq-name ' + (isOk ? 'name-correct' : 'name-wrong');
+  sqName.textContent = isOk ? '✓ ' + correct : '';
+  sqName.className = 'sq-name ' + (isOk ? 'name-correct' : '');
 
   if (isOk) {
     busy = true;
@@ -796,8 +897,14 @@ function pickAnswer(chosen, q) {
       // 즉시 다음 사각형으로 이동 — 보기는 고정이므로 버튼 상태만 리셋
       busy = false;
       firstAttemptWrong = false;
-      document.getElementById('question-prompt').textContent =
-        `순서대로 맞춰보세요! (${currentAnswerIdx+1} / ${q.colors.length})`;
+      if (answerType === 'color') {
+        document.getElementById('question-prompt').textContent =
+          `순서대로 골라보세요! (${currentAnswerIdx+1} / ${q.colors.length})`;
+        speak(`${q.colors[currentAnswerIdx].name}은 어디에 있나요?`);
+      } else {
+        document.getElementById('question-prompt').textContent =
+          `순서대로 맞춰보세요! (${currentAnswerIdx+1} / ${q.colors.length})`;
+      }
       fb.textContent = '';
       fb.className = 'feedback';
       document.getElementById('sq-' + currentAnswerIdx).classList.add('sq-active');
