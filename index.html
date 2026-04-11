@@ -96,6 +96,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100dv
 #impulse-details{display:none;}
 .logout-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.75rem;font-weight:600;color:var(--warm-400);cursor:pointer;font-family:inherit;margin-top:20px;}
 .logout-btn:hover{background:var(--bg);}
+body:not(.sm-loggedin) [title="공유하기"],
+body:not(.sm-loggedin) #share-bubble { display: none !important; }
 
 /* ── Play View ── */
 #play-view{width:100%;display:flex;flex-direction:column;align-items:center;}
@@ -618,6 +620,24 @@ document.addEventListener('DOMContentLoaded', function() {
   var days = parseInt(localStorage.getItem('slowmath_color_share_days') || '0');
   if (days >= 5) { var b = document.getElementById('share-bubble'); if (b) b.style.display = 'none'; }
 });
+
+// Share visibility: hide when logged out OR already shared 5+ times
+(function() {
+  var _SM_KEY = 'slowmath_color_login';
+  var _SM_SHARE_KEY = 'slowmath_color_share_days';
+  function _updateShareVis() {
+    var loggedIn = !!localStorage.getItem(_SM_KEY);
+    var days = parseInt(localStorage.getItem(_SM_SHARE_KEY) || '0');
+    document.body.classList.toggle('sm-loggedin', loggedIn && days < 5);
+  }
+  _updateShareVis();
+  ['socialLogin','logout','goLogin'].forEach(function(fn) {
+    if (typeof window[fn] === 'function') {
+      var _orig = window[fn];
+      window[fn] = function() { _orig.apply(this, arguments); _updateShareVis(); };
+    }
+  });
+})();
 
 /* ══ 문제 생성 ══ */
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
